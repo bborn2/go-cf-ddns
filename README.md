@@ -26,6 +26,8 @@ https://developers.cloudflare.com/api/operations/dns-records-for-a-zone-list-dns
 curl --request GET \
   --url https://api.cloudflare.com/client/v4/zones/zone_id/dns_records \
   --header 'Content-Type: application/json' \
-  --header 'Authorization: Bearer xxxtoken'
+  --header 'Authorization: Bearer yourtoken'
+
+replace yourtoken
 ```
 Copy the zone_id from the return json
