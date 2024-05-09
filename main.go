@@ -204,7 +204,7 @@ func main() {
 	}
 
 	// required flags
-	keyPtr := flag.String("key", "", "cf Token")
+	keyPtr := flag.String("token", "", "cf Token")
 	// domainPtr := flag.String("domain", "", "Your top level domain (e.g., example.com)")
 	zoneidPtr := flag.String("zoneid", "", "Zone id")
 

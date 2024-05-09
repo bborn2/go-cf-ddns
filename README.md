@@ -14,10 +14,10 @@ created a free DNS at Cloudflare and then pointed the Godaddy nameservers to itã
 
 ## Usage
 ```
-cfddns --key xxx --zoneid xxx
+cfddns --token xxx --zoneid xxx
 ```
 
-## How to get key
+## How to get token
 create api token: https://dash.cloudflare.com/profile/api-tokens, use template for Edit zone DNS
 
 ## How to get zoneid
