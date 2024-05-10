@@ -102,7 +102,7 @@ func putNewIP(ip string) error {
 		Name:    DOMAIN,
 		Proxied: false,
 		Type:    "A",
-		TTL:     3600,
+		TTL:     60,
 	})
 
 	if err != nil {
