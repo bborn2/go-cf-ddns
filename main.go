@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	log "github.com/sirupsen/logrus"
@@ -19,12 +20,15 @@ var (
 	Githash    string
 )
 
-var IP_PROVIDER = "http://v4.ident.me/"
+// var IP_PROVIDER = "http://v4.ident.me/"
+// var IP_PROVIDER = "https://ifconfig.me/ip"
+var IP_PROVIDER = "https://myip.ipip.net/s"
 
 type Result struct {
 	ID      string `json:"id"`
 	ZoneID  string `json:"zone_id"`
 	Content string `json:"content"`
+	Name    string `json:"name"`
 }
 
 type Response struct {
@@ -58,12 +62,12 @@ func getOwnIPv4() (string, error) {
 
 	buf := new(bytes.Buffer)
 	buf.ReadFrom(resp.Body)
-	return buf.String(), nil
+	return strings.TrimSpace(buf.String()), nil
 }
 
 func getDomainIPv4() (string, error) {
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s/dns_records", ZONEID), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("https://api.cloudflare.com/client/v4/zones/%s/dns_records?type=A", ZONEID), nil)
 	if err != nil {
 		return "", err
 	}
@@ -85,9 +89,24 @@ func getDomainIPv4() (string, error) {
 	json.NewDecoder(resp.Body).Decode(&response)
 
 	if response.Success {
-		DNSID = response.Result[0].ID
 
-		return response.Result[0].Content, nil
+		if DOMAIN == "@" {
+			DNSID = response.Result[0].ID
+
+			return response.Result[0].Content, nil
+		} else {
+
+			for _, value := range response.Result {
+				if strings.EqualFold(value.Name, DOMAIN) {
+					DNSID = value.ID
+
+					return value.Content, nil
+				}
+			}
+		}
+
+		return "", errors.New("get dns record not equal")
+
 	} else {
 
 		return "", errors.New("get dns record error")
@@ -205,7 +224,7 @@ func main() {
 
 	// required flags
 	keyPtr := flag.String("token", "", "cf Token")
-	// domainPtr := flag.String("domain", "", "Your top level domain (e.g., example.com)")
+	domainPtr := flag.String("domain", "@", "Your top level domain (e.g., example.com)")
 	zoneidPtr := flag.String("zoneid", "", "Zone id")
 
 	var flagversion bool
@@ -221,6 +240,7 @@ func main() {
 
 	CF_TOKEN = *keyPtr
 	ZONEID = *zoneidPtr
+	DOMAIN = *domainPtr
 
 	if CF_TOKEN == "" {
 		log.Fatalf("You need to provide your cloudFlare TOKEN")
