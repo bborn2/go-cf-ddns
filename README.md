@@ -24,7 +24,7 @@ create api token: https://dash.cloudflare.com/profile/api-tokens, use template f
 https://developers.cloudflare.com/api/operations/dns-records-for-a-zone-list-dns-records
 ```
 curl --request GET \
-  --url https://api.cloudflare.com/client/v4/zones/zone_id/dns_records \
+  --url https://api.cloudflare.com/client/v4/zones \
   --header 'Content-Type: application/json' \
   --header 'Authorization: Bearer yourtoken'
 
