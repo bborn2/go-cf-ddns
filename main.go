@@ -30,8 +30,28 @@ type Result struct {
 }
 
 type Response struct {
-	Result  []Result `json:"result"`
-	Success bool     `json:"success"`
+	Result  json.RawMessage `json:"result"`
+	Success bool            `json:"success"`
+}
+
+func parseResultList(raw json.RawMessage) ([]Result, error) {
+	if len(raw) == 0 || string(raw) == "null" {
+		return nil, nil
+	}
+
+	if raw[0] == '[' {
+		var records []Result
+		if err := json.Unmarshal(raw, &records); err != nil {
+			return nil, err
+		}
+		return records, nil
+	}
+
+	var record Result
+	if err := json.Unmarshal(raw, &record); err != nil {
+		return nil, err
+	}
+	return []Result{record}, nil
 }
 
 type DNSRecord struct {
@@ -118,16 +138,21 @@ func getDomainIPv4() (string, error) {
 	if !response.Success {
 		return "", errors.New("get dns record error")
 	}
-	if len(response.Result) == 0 {
+
+	results, err := parseResultList(response.Result)
+	if err != nil {
+		return "", err
+	}
+	if len(results) == 0 {
 		return "", errors.New("get dns record not equal")
 	}
 
 	if DOMAIN == "@" {
-		DNSID = response.Result[0].ID
-		return response.Result[0].Content, nil
+		DNSID = results[0].ID
+		return results[0].Content, nil
 	}
 
-	if record, ok := findDNSRecordByName(response.Result, DOMAIN); ok {
+	if record, ok := findDNSRecordByName(results, DOMAIN); ok {
 		DNSID = record.ID
 		return record.Content, nil
 	}

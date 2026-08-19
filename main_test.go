@@ -1,6 +1,9 @@
 package main
 
-import "testing"
+import (
+	"encoding/json"
+	"testing"
+)
 
 func TestFindDNSRecordByName(t *testing.T) {
 	records := []Result{
@@ -24,5 +27,20 @@ func TestFindDNSRecordByName(t *testing.T) {
 func TestFindDNSRecordByNameEmpty(t *testing.T) {
 	if _, ok := findDNSRecordByName(nil, "example.com"); ok {
 		t.Fatal("expected empty record set to be rejected")
+	}
+}
+
+func TestParseResultListAcceptsSingleObject(t *testing.T) {
+	payload := json.RawMessage(`{"id":"abc","name":"example.com","content":"78.110.169.189"}`)
+
+	records, err := parseResultList(payload)
+	if err != nil {
+		t.Fatalf("expected object payload to parse, got error: %v", err)
+	}
+	if len(records) != 1 {
+		t.Fatalf("expected one record, got %d", len(records))
+	}
+	if records[0].Content != "78.110.169.189" {
+		t.Fatalf("expected content 78.110.169.189, got %q", records[0].Content)
 	}
 }
