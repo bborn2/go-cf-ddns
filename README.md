@@ -19,6 +19,19 @@ For Cloudflare DNS management guidance, see: https://developers.cloudflare.com/d
 
 This project is designed for environments where the public IP changes frequently and the DNS record should stay in sync automatically. It retrieves the current public IPv4 address from a public IP service, compares it with the Cloudflare DNS record, and updates the record if needed.
 
+## Public IP Provider
+
+This project uses https://echo.tinyandbeautiful.com/ as the default public IP source. It is a lightweight, no-registration, no-token service that exposes the current public IP directly and is well suited for scripts, monitoring tools, and DDNS workflows.
+
+The service supports simple endpoints such as:
+
+```bash
+curl https://echo.tinyandbeautiful.com/ip
+curl https://echo.tinyandbeautiful.com/json
+```
+
+The plain-text `/ip` endpoint matches the needs of this tool perfectly because the program reads the response body, trims whitespace, and uses the resulting value as the current external IP.
+
 ## Features
 
 - Retrieves the current public IPv4 address
