@@ -20,8 +20,6 @@ var (
 	Githash    string
 )
 
-// var IP_PROVIDER = "http://v4.ident.me/"
-// var IP_PROVIDER = "https://ifconfig.me/ip"
 var IP_PROVIDER = "https://echo.tinyandbeautiful.com/ip"
 
 type Result struct {
@@ -51,18 +49,42 @@ func getOwnIPv4() (string, error) {
 	c := http.Client{Timeout: 10 * time.Second}
 
 	resp, err := c.Get(IP_PROVIDER)
+	if err != nil {
+		return "", err
+	}
+	if resp == nil {
+		return "", errors.New("empty response from IP provider")
+	}
+	defer resp.Body.Close()
 
-	if nil != resp {
-		defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("IP provider returned status %s", resp.Status)
 	}
 
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return "", err
 	}
 
-	buf := new(bytes.Buffer)
-	buf.ReadFrom(resp.Body)
-	return strings.TrimSpace(buf.String()), nil
+	ip := strings.TrimSpace(string(body))
+	if ip == "" {
+		return "", errors.New("empty IP returned by provider")
+	}
+	return ip, nil
+}
+
+func findDNSRecordByName(records []Result, name string) (Result, bool) {
+	if len(records) == 0 {
+		return Result{}, false
+	}
+
+	for _, value := range records {
+		if strings.EqualFold(value.Name, name) {
+			return value, true
+		}
+	}
+
+	return Result{}, false
 }
 
 func getDomainIPv4() (string, error) {
@@ -76,41 +98,41 @@ func getDomainIPv4() (string, error) {
 	c := http.Client{Timeout: 5 * time.Second}
 
 	resp, err := c.Do(req)
-
-	if nil != resp {
-		defer resp.Body.Close()
-	}
-
 	if err != nil {
 		return "", err
 	}
+	if resp == nil {
+		return "", errors.New("empty response from Cloudflare DNS API")
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("Cloudflare DNS API returned status %s", resp.Status)
+	}
 
 	var response Response
-	json.NewDecoder(resp.Body).Decode(&response)
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return "", err
+	}
 
-	if response.Success {
-
-		if DOMAIN == "@" {
-			DNSID = response.Result[0].ID
-
-			return response.Result[0].Content, nil
-		} else {
-
-			for _, value := range response.Result {
-				if strings.EqualFold(value.Name, DOMAIN) {
-					DNSID = value.ID
-
-					return value.Content, nil
-				}
-			}
-		}
-
-		return "", errors.New("get dns record not equal")
-
-	} else {
-
+	if !response.Success {
 		return "", errors.New("get dns record error")
 	}
+	if len(response.Result) == 0 {
+		return "", errors.New("get dns record not equal")
+	}
+
+	if DOMAIN == "@" {
+		DNSID = response.Result[0].ID
+		return response.Result[0].Content, nil
+	}
+
+	if record, ok := findDNSRecordByName(response.Result, DOMAIN); ok {
+		DNSID = record.ID
+		return record.Content, nil
+	}
+
+	return "", errors.New("get dns record not equal")
 }
 
 func putNewIP(ip string) error {
@@ -141,27 +163,25 @@ func putNewIP(ip string) error {
 	c := http.Client{Timeout: 5 * time.Second}
 
 	resp, err := c.Do(req)
-
-	if nil != resp {
-		defer resp.Body.Close()
-	}
-
 	if err != nil {
 		log.Errorf("res err %s", err)
 		return err
 	}
+	if resp == nil {
+		return errors.New("empty response from Cloudflare DNS API")
+	}
+	defer resp.Body.Close()
 
 	var response Response
-	json.NewDecoder(resp.Body).Decode(&response)
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return err
+	}
 
-	// log.Debug(response)
-
-	if resp.StatusCode == 200 && response.Success {
+	if resp.StatusCode == http.StatusOK && response.Success {
 		log.Debug("update ok")
 		return nil
-	} else {
-		return fmt.Errorf("failed with HTTP status code %d", resp.StatusCode)
 	}
+	return fmt.Errorf("failed with HTTP status code %d", resp.StatusCode)
 }
 
 func run() {
