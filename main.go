@@ -22,7 +22,7 @@ var (
 
 // var IP_PROVIDER = "http://v4.ident.me/"
 // var IP_PROVIDER = "https://ifconfig.me/ip"
-var IP_PROVIDER = "https://myip.ipip.net/s"
+var IP_PROVIDER = "https://echo.tinyandbeautiful.com/ip"
 
 type Result struct {
 	ID      string `json:"id"`
