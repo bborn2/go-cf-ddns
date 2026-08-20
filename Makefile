@@ -1,9 +1,9 @@
-LDFLAGS="-X main.Buildstamp=`date '+%Y-%m-%d_%I:%M:%S%p'` -X main.Githash=`git describe --tags` -s -w"
+LDFLAGS="-X main.Buildstamp=`date '+%Y-%m-%d_%I:%M:%S%p'` -X main.Version=`git describe --tags --always` -X main.Githash=`git rev-parse --short HEAD` -s -w"
 
 build: clean
 	go mod tidy
 	go build -ldflags $(LDFLAGS) -o ./cfddns main.go
- 
+
 
 # install:
 # 	mkdir -vp /usr/local/bin/

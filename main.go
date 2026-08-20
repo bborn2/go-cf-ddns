@@ -18,9 +18,18 @@ import (
 var (
 	Buildstamp string
 	Githash    string
+	Version    = "dev"
 )
 
 var IP_PROVIDER = "https://echo.tinyandbeautiful.com/ip"
+
+func userAgentString() string {
+	return fmt.Sprintf("go-cf-ddns/%s (+https://github.com/bborn2/go-cf-ddns)", Version)
+}
+
+func setUserAgent(req *http.Request) {
+	req.Header.Set("User-Agent", userAgentString())
+}
 
 type Result struct {
 	ID      string `json:"id"`
@@ -68,7 +77,13 @@ func getOwnIPv4() (string, error) {
 
 	c := http.Client{Timeout: 10 * time.Second}
 
-	resp, err := c.Get(IP_PROVIDER)
+	req, err := http.NewRequest("GET", IP_PROVIDER, nil)
+	if err != nil {
+		return "", err
+	}
+	setUserAgent(req)
+
+	resp, err := c.Do(req)
 	if err != nil {
 		return "", err
 	}
@@ -114,6 +129,7 @@ func getDomainIPv4() (string, error) {
 		return "", err
 	}
 
+	setUserAgent(req)
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", CF_TOKEN))
 	c := http.Client{Timeout: 5 * time.Second}
 
@@ -183,6 +199,7 @@ func putNewIP(ip string) error {
 		log.Error("Error creating request:", err.Error())
 		return err
 	}
+	setUserAgent(req)
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", CF_TOKEN))
 	c := http.Client{Timeout: 5 * time.Second}
@@ -278,6 +295,7 @@ func main() {
 	flag.Parse()
 
 	if flagversion {
+		fmt.Printf("Version : %s\n", Version)
 		fmt.Printf("Git Commit Hash: %s\n", Githash)
 		fmt.Printf("Build Time : %s\n", Buildstamp)
 		return
